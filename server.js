@@ -9,7 +9,6 @@ const passportLocalMongoose = require("passport-local-mongoose");
 const findOrCreate = require("mongoose-findorcreate");
 
 const cors = require("cors");
-
 const port = 8000;
 
 const app = express();
@@ -78,43 +77,11 @@ const userSchema = new mongoose.Schema({
     },
   ],
   profile: {
-    fullName: String,
-    email: String,
     initialBalance: String,
     brokerName: String,
     profileImageUrl: String,
   },
 });
-
-// await axios
-//       .post(
-//         "http://localhost:8000/signup",
-//         {
-//           fullName: formFields.name,
-//           username: formFields.username,
-//           auth_method: "local",
-//           userTrades: [],
-//           profile: {
-//             fullName: formFields.name,
-//             email: formFields.username,
-//             initialBalance: "",
-//             brokerName: "",
-//             profileImageUrl: "",
-//           },
-//           password: formFields.password,
-//         },
-//         {
-//           headers: {
-//             "content-type": "application/json",
-//           },
-//         }
-//       )
-//       .then(function (response) {
-//         console.log("response.data:", response.data);
-//       })
-//       .catch(function (error) {
-//         console.log(error);
-//       });
 
 userSchema.plugin(passportLocalMongoose);
 userSchema.plugin(findOrCreate);
@@ -154,6 +121,21 @@ passport.deserializeUser((id, done) => {
 //   )
 // );
 
+// app.get("/auth/isAuthenticated", (req, res) => {
+//   if (req.isAuthenticated()) {
+//     res.send({
+//       success: true,
+//       user: req.user,
+//     });
+//   } else {
+//     res.send({
+//       success: false,
+//       user: req.user,
+//       session: req.session
+//     });
+//   }
+// });
+
 app.get("/auth/logout", (req, res) => {
   req.logout((err) => {
     if (!err) {
@@ -169,12 +151,10 @@ app.post("/auth/signup", (req, res) => {
     {
       fullName: req.body.fullName,
       username: req.body.username,
-      auth_method: req.body.auth_method,
+      auth_method: "local",
       userTrades: [],
       profile: {
-        fullName: req.body.profile.fullName,
-        email: req.body.profile.email,
-        initalBalance: "",
+        initialBalance: "",
         brokerName: "",
         profileImageUrl: "",
       },
@@ -183,13 +163,12 @@ app.post("/auth/signup", (req, res) => {
     (err, user) => {
       if (!err) {
         passport.authenticate("local")(req, res, () => {
-          res.status(200).send(user, { success: true });
+          res.status(200).send({ user: user, success: true });
         });
       } else {
-        const message = err.message;
-        res.send({
-          statusCode: 500,
-          message: message,
+        const errorMessage = err.message;
+        res.status(500).send({
+          message: errorMessage,
         });
       }
     }
@@ -210,6 +189,7 @@ app.post("/auth/signin", (req, res) => {
       })(req, res, () => {
         res.send({
           success: true,
+          user: req.user,
         });
       });
     } else {
@@ -221,6 +201,26 @@ app.post("/auth/signin", (req, res) => {
       });
     }
   });
+});
+
+app.post("/user/update/profile", (req, res) => {
+  const { userID, fullName, email, initialBalance, brokerName } = req.body;
+  User.findByIdAndUpdate(
+    userID,
+    {
+      fullName: fullName,
+      email: email,
+      "profile.initialBalance": initialBalance,
+      "profile.brokerName": brokerName,
+    },
+    function (err, newUser) {
+      if (!err) {
+        res.status(200).send(newUser);
+      } else {
+        console.log(err);
+      }
+    }
+  );
 });
 
 app.listen(port, () => {
