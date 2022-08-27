@@ -121,21 +121,6 @@ passport.deserializeUser((id, done) => {
 //   )
 // );
 
-// app.get("/auth/isAuthenticated", (req, res) => {
-//   if (req.isAuthenticated()) {
-//     res.send({
-//       success: true,
-//       user: req.user,
-//     });
-//   } else {
-//     res.send({
-//       success: false,
-//       user: req.user,
-//       session: req.session
-//     });
-//   }
-// });
-
 app.get("/auth/logout", (req, res) => {
   req.logout((err) => {
     if (!err) {
@@ -221,6 +206,39 @@ app.post("/user/update/profile", (req, res) => {
       }
     }
   );
+});
+
+app.post("/user/update/trades", (req, res) => {
+  const { userID, newTrade } = req.body;
+  //create new trade
+  const userAddedTrade = new Trade({
+    pair: newTrade.pair,
+    date: newTrade.date,
+    time: newTrade.time,
+    open: newTrade.open,
+    close: newTrade.close,
+    volume: newTrade.volume,
+    outcome: newTrade.outcome,
+    riskReward: newTrade.riskReward,
+    pAndL: newTrade.pAndL,
+  });
+  
+  //save the id of that trade into the user's array
+
+  userAddedTrade.save((err, _id) => {
+    User.findByIdAndUpdate(
+      userID,
+      { $push: { userTrades: _id } },
+      function (err, docs) {
+        if (!err) {
+          console.log("operation success, this is the docs", docs);
+        } else {
+          console.log("@@@@houston, we've got a problem: ", err);
+        }
+      }
+    );
+  });
+
 });
 
 app.listen(port, () => {
