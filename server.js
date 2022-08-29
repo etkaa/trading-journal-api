@@ -131,6 +131,27 @@ app.get("/auth/logout", (req, res) => {
   });
 });
 
+app.get("/user/getalltrades", (req, res) => {
+  const userTrades = [req.body.userTrades];
+  const allTrades = [];
+
+  for (let i = 0; i < userTrades.length; i++) {
+    console.log(userTrades[i]);
+    Trade.findById(userTrades[i], function (err, docs) {
+      if (!err) {
+        allTrades.push(docs);
+        console.log("trade.findbyid results", allTrades);
+      } else {
+        console.log("trade.findbyid errors", err);
+      }
+    });
+  }
+
+  res.send({
+    tradesOfUser: allTrades,
+  });
+});
+
 app.post("/auth/signup", (req, res) => {
   User.register(
     {
@@ -200,7 +221,9 @@ app.post("/user/update/profile", (req, res) => {
     },
     function (err, newUser) {
       if (!err) {
-        res.status(200).send(newUser);
+        res.status(200).send({
+          updatedUser: newUser,
+        });
       } else {
         console.log(err);
       }
@@ -222,7 +245,7 @@ app.post("/user/update/trades", (req, res) => {
     riskReward: newTrade.riskReward,
     pAndL: newTrade.pAndL,
   });
-  
+
   //save the id of that trade into the user's array
 
   userAddedTrade.save((err, _id) => {
@@ -232,13 +255,15 @@ app.post("/user/update/trades", (req, res) => {
       function (err, docs) {
         if (!err) {
           console.log("operation success, this is the docs", docs);
+          res.status(200).send({
+            updatedUser: docs,
+          });
         } else {
           console.log("@@@@houston, we've got a problem: ", err);
         }
       }
     );
   });
-
 });
 
 app.listen(port, () => {
