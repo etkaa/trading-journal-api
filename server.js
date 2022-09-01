@@ -126,13 +126,32 @@ app.get("/auth/logout", (req, res) => {
   });
 });
 
-app.get("/user/getalltrades/:userID", (req, res) => {
+app.get("/user/trades/:userID", (req, res) => {
   const userID = req.params.userID;
   //find all trades with the userID===userId
   Trade.find({ userId: userID }, (err, docs) => {
     if (!err) {
       res.status(200).send({
         tradesOfUser: docs,
+      });
+    } else {
+      res.status(500).send({
+        error: err,
+      });
+    }
+  });
+});
+
+app.get("/user/profile/:userID", (req, res) => {
+  const userID = req.params.userID;
+  //find the user where userID===userId
+  User.findById(userID, (err, user) => {
+    if (!err) {
+      res.status(200).send({
+        fullName: user.fullName,
+        email: user.username,
+        initialBalance: user.profile.initialBalance,
+        brokerName: user.profile.brokerName,
       });
     } else {
       res.status(500).send({
@@ -209,11 +228,9 @@ app.post("/user/update/profile", (req, res) => {
       "profile.initialBalance": initialBalance,
       "profile.brokerName": brokerName,
     },
-    function (err, newUser) {
+    function (err, updatedUser) {
       if (!err) {
-        res.status(200).send({
-          updatedUser: newUser,
-        });
+        res.status(200).send();
       } else {
         console.log(err);
       }
@@ -246,7 +263,7 @@ app.post("/user/update/trades", (req, res) => {
       function (err, docs) {
         if (!err) {
           res.status(200).send({
-            updatedUser: docs,
+            // updatedUser: docs,
           });
         } else {
           console.log("error on update/trades api", err);
