@@ -126,6 +126,41 @@ app.get("/auth/logout", (req, res) => {
   });
 });
 
+app.get("/user/stats/:userID", (req, res) => {
+  const userID = req.params.userID;
+  //find all trades with the userID===userId
+  Trade.find({ userId: userID }, (err, allTrades) => {
+    if (!err) {
+      var winLoss = Number(0);
+      var winCount = Number(0);
+      var sum = Number(0);
+      var totalRiskReward = Number(0);
+      var avgRiskReward = Number(0);
+      for (i = 0; i < allTrades.length; i++) {
+        sum = sum + parseInt(allTrades[i].pAndL);
+
+        var status = allTrades[i].outcome;
+        if (status === "Win") {
+          winCount = winCount + 1;
+        }
+        winLoss = (winCount / allTrades.length) * 100;
+
+        totalRiskReward = totalRiskReward + parseFloat(allTrades[i].riskReward);
+        avgRiskReward = totalRiskReward / allTrades.length;
+      }
+      res.status(200).send({
+        userStats: {
+          sumOfAllTrades: sum,
+          winLossRatio: winLoss,
+          averageRiskReward: avgRiskReward,
+        },
+      });
+    } else {
+      res.status(500).send({ err });
+    }
+  });
+});
+
 app.get("/user/trades/:userID", (req, res) => {
   const userID = req.params.userID;
   //find all trades with the userID===userId
@@ -241,6 +276,15 @@ app.post("/user/update/profile", (req, res) => {
 app.post("/user/update/trades", (req, res) => {
   const { userID, newTrade } = req.body;
   //create new trade
+  var newOutcome;
+  if (newTrade.pAndL > 0) {
+    newOutcome = "Win";
+  } else if (newTrade.pAndL < 0) {
+    newOutcome = "Lose";
+  } else {
+    newOutcome = "Break-Even";
+  }
+
   const userAddedTrade = new Trade({
     userId: userID,
     pair: newTrade.pair,
@@ -249,7 +293,7 @@ app.post("/user/update/trades", (req, res) => {
     open: newTrade.open,
     close: newTrade.close,
     volume: newTrade.volume,
-    outcome: newTrade.outcome,
+    outcome: newOutcome,
     riskReward: newTrade.riskReward,
     pAndL: newTrade.pAndL,
   });
