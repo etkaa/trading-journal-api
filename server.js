@@ -12,7 +12,12 @@ const cors = require("cors");
 const port = 8000;
 
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    credentials: true,
+    origin: "http://localhost:3000",
+  })
+);
 
 app.use(
   bodyParser.urlencoded({
@@ -23,9 +28,11 @@ app.use(bodyParser.json());
 
 app.use(
   session({
-    secret: process.env.SECRET,
-    resave: false,
-    saveUninitialized: false,
+    // secret: process.env.SECRET,
+    secret: "This is my secret bro",
+    saveUninitialized: true,
+    resave: true,
+    cookie: { secure: false },
   })
 );
 
@@ -90,6 +97,7 @@ passport.serializeUser((user, done) => {
 });
 
 passport.deserializeUser((id, done) => {
+  console.log("deserialize user run, this is the id:", id);
   User.findById(id, (err, user) => {
     done(err, user);
   });
@@ -116,6 +124,16 @@ passport.deserializeUser((id, done) => {
 //   )
 // );
 
+app.get("/auth/status", (req, res) => {
+  const auth = req.isAuthenticated();
+  console.log(auth);
+
+  res.send({
+    auth: auth,
+    user: req.user,
+  });
+});
+
 app.get("/auth/logout", (req, res) => {
   req.logout((err) => {
     if (!err) {
@@ -136,6 +154,8 @@ app.get("/user/stats/:userID", (req, res) => {
       var sum = Number(0);
       var totalRiskReward = Number(0);
       var avgRiskReward = Number(0);
+      var totalTradeCount = Number(0);
+      var totalVolume = Number(0);
       for (i = 0; i < allTrades.length; i++) {
         sum = sum + parseInt(allTrades[i].pAndL);
 
@@ -145,14 +165,19 @@ app.get("/user/stats/:userID", (req, res) => {
         }
         winLoss = (winCount / allTrades.length) * 100;
 
+        totalVolume = totalVolume + parseFloat(allTrades[i].volume);
+
         totalRiskReward = totalRiskReward + parseFloat(allTrades[i].riskReward);
         avgRiskReward = totalRiskReward / allTrades.length;
+        totalTradeCount = allTrades.length;
       }
       res.status(200).send({
         userStats: {
           sumOfAllTrades: sum,
           winLossRatio: winLoss,
           averageRiskReward: avgRiskReward,
+          totalTradeCount: totalTradeCount,
+          totalVolume: totalVolume,
         },
       });
     } else {
@@ -183,10 +208,13 @@ app.get("/user/profile/:userID", (req, res) => {
   User.findById(userID, (err, user) => {
     if (!err) {
       res.status(200).send({
-        fullName: user.fullName,
-        email: user.username,
-        initialBalance: user.profile.initialBalance,
-        brokerName: user.profile.brokerName,
+        profileFields: {
+          fullName: user.fullName,
+          email: user.username,
+          initialBalance: user.profile.initialBalance,
+          brokerName: user.profile.brokerName,
+          profileImageUrl: user.profile.profileImageUrl,
+        },
       });
     } else {
       res.status(500).send({
@@ -239,7 +267,7 @@ app.post("/auth/signin", (req, res) => {
       })(req, res, () => {
         res.send({
           success: true,
-          user: req.user,
+          userID: req.user._id,
         });
       });
     } else {
@@ -254,7 +282,14 @@ app.post("/auth/signin", (req, res) => {
 });
 
 app.post("/user/update/profile", (req, res) => {
-  const { userID, fullName, email, initialBalance, brokerName } = req.body;
+  const {
+    userID,
+    fullName,
+    email,
+    initialBalance,
+    brokerName,
+    profileImageUrl,
+  } = req.body;
   User.findByIdAndUpdate(
     userID,
     {
@@ -262,6 +297,7 @@ app.post("/user/update/profile", (req, res) => {
       email: email,
       "profile.initialBalance": initialBalance,
       "profile.brokerName": brokerName,
+      "profile.profileImageUrl": profileImageUrl,
     },
     function (err, updatedUser) {
       if (!err) {
