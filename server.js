@@ -14,8 +14,9 @@ const port = 8000;
 const app = express();
 app.use(
   cors({
-    credentials: true,
     origin: "http://localhost:3000",
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true,
   })
 );
 
@@ -28,11 +29,13 @@ app.use(bodyParser.json());
 
 app.use(
   session({
-    // secret: process.env.SECRET,
-    secret: "This is my secret bro",
-    saveUninitialized: true,
-    resave: true,
-    cookie: { secure: false },
+    secret: process.env.SECRET,
+    saveUninitialized: false,
+    resave: false,
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 5, //5 Hours
+      secure: false,
+    },
   })
 );
 
@@ -93,15 +96,23 @@ const User = new mongoose.model("User", userSchema);
 passport.use(User.createStrategy());
 
 passport.serializeUser((user, done) => {
+  console.log("serialize running");
   done(null, user.id);
 });
-
 passport.deserializeUser((id, done) => {
-  console.log("deserialize user run, this is the id:", id);
+  console.log("deserialize running");
   User.findById(id, (err, user) => {
     done(err, user);
   });
 });
+
+function checkAuthentication(req, res, next) {
+  if (req.isAuthenticated()) {
+    next();
+  } else {
+    res.status(401).send();
+  }
+}
 
 // passport.use(
 //   new GoogleStrategy(
@@ -125,13 +136,15 @@ passport.deserializeUser((id, done) => {
 // );
 
 app.get("/auth/status", (req, res) => {
-  const auth = req.isAuthenticated();
-  console.log(auth);
-
-  res.send({
-    auth: auth,
-    user: req.user,
-  });
+  if (req.isAuthenticated()) {
+    res.status(200).send({
+      user: req.user.id,
+    });
+  } else {
+    res.send({
+      user: null,
+    });
+  }
 });
 
 app.get("/auth/logout", (req, res) => {
@@ -144,7 +157,7 @@ app.get("/auth/logout", (req, res) => {
   });
 });
 
-app.get("/user/stats/:userID", (req, res) => {
+app.get("/user/stats/:userID", checkAuthentication, (req, res) => {
   const userID = req.params.userID;
   //find all trades with the userID===userId
   Trade.find({ userId: userID }, (err, allTrades) => {
@@ -186,7 +199,7 @@ app.get("/user/stats/:userID", (req, res) => {
   });
 });
 
-app.get("/user/trades/:userID", (req, res) => {
+app.get("/user/trades/:userID", checkAuthentication, (req, res) => {
   const userID = req.params.userID;
   //find all trades with the userID===userId
   Trade.find({ userId: userID }, (err, docs) => {
@@ -202,7 +215,7 @@ app.get("/user/trades/:userID", (req, res) => {
   });
 });
 
-app.get("/user/profile/:userID", (req, res) => {
+app.get("/user/profile/:userID", checkAuthentication, (req, res) => {
   const userID = req.params.userID;
   //find the user where userID===userId
   User.findById(userID, (err, user) => {
@@ -259,7 +272,7 @@ app.post("/auth/signin", (req, res) => {
     password: req.body.password,
   });
 
-  req.login(user, (err) => {
+  req.logIn(user, (err) => {
     if (!err) {
       passport.authenticate("local", {
         failureMessage: true,
@@ -281,7 +294,7 @@ app.post("/auth/signin", (req, res) => {
   });
 });
 
-app.post("/user/update/profile", (req, res) => {
+app.post("/user/update/profile", checkAuthentication, (req, res) => {
   const {
     userID,
     fullName,
@@ -309,7 +322,7 @@ app.post("/user/update/profile", (req, res) => {
   );
 });
 
-app.post("/user/update/trades", (req, res) => {
+app.post("/user/update/trades", checkAuthentication, (req, res) => {
   const { userID, newTrade } = req.body;
   //create new trade
   var newOutcome;
