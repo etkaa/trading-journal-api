@@ -42,7 +42,7 @@ app.use(
       domain: "fx-journal.netlify.app",
       maxAge: 1000 * 60 * 60 * 3, //3 Hours
       secure: true, //if true, local won't work //changed this to true 09.09 - 15.09
-      httpOnly: true, //no effect on local //changed this to true 09.09 - 15.09
+      httpOnly: false, //no effect on local //changed this to true 09.09 - 15.09
       sameSite: "none", //if set, local won't work //changed this to sameSite: none 09.09 - 15.09
     },
   })
