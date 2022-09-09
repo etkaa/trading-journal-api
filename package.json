@@ -25,7 +25,6 @@
     "passport": "^0.6.0",
     "passport-local-mongoose": "^7.1.2"
   },
-  "proxy": "https://fx-journal.netlify.app",
   "engines": {
     "node": "16.15.1",
     "npm": "8.13.1"

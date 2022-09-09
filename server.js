@@ -38,10 +38,11 @@ app.use(
       checkPeriod: 86400000, // prune expired entries every 24h
     }),
     cookie: {
+      path: "/", //added this  09.09 - 15.09
       maxAge: 1000 * 60 * 60 * 3, //3 Hours
-      secure: false, //if true, local won't work
-      httpOnly: false, //no effect on local
-      // sameSite: "none", //if set, local won't work
+      secure: true, //if true, local won't work //changed this to true 09.09 - 15.09
+      httpOnly: true, //no effect on local //changed this to true 09.09 - 15.09
+      sameSite: "none", //if set, local won't work //changed this to sameSite: none 09.09 - 15.09
     },
   })
 );
