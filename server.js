@@ -9,12 +9,12 @@ const passportLocalMongoose = require("passport-local-mongoose");
 const findOrCreate = require("mongoose-findorcreate");
 
 const cors = require("cors");
-const port = 8000;
+const port = process.env.PORT || 8000;
 
 const app = express();
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: process.env.CLIENT_URL,
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
   })
@@ -33,7 +33,7 @@ app.use(
     saveUninitialized: false,
     resave: false,
     cookie: {
-      maxAge: 1000 * 60 * 60 * 5, //5 Hours
+      maxAge: 1000 * 60 * 60 * 3, //3 Hours
       secure: false,
     },
   })
@@ -135,16 +135,17 @@ function checkAuthentication(req, res, next) {
 //   )
 // );
 
-app.get("/auth/status", (req, res) => {
-  if (req.isAuthenticated()) {
-    res.status(200).send({
-      user: req.user.id,
-    });
-  } else {
-    res.send({
-      user: null,
-    });
-  }
+app.get("/", (req, res) => {
+  res.status(200).send({
+    message:
+      "Hello, friend! I am not sure how you ended up here but, this is a private API for my portfolio project, so thanks for visiting!",
+  });
+});
+
+app.get("/auth/status", checkAuthentication, (req, res) => {
+  res.status(200).send({
+    user: req.user.id,
+  });
 });
 
 app.get("/auth/logout", (req, res) => {
