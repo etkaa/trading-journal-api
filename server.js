@@ -6,7 +6,7 @@ const mongoose = require("mongoose");
 const session = require("express-session");
 const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
-const findOrCreate = require("mongoose-findorcreate");
+// const findOrCreate = require("mongoose-findorcreate");
 
 const cors = require("cors");
 
@@ -30,10 +30,10 @@ app.use(
   session({
     secret: process.env.SECRET,
     saveUninitialized: false,
-    resave: false,
+    resave: true,
     cookie: {
       maxAge: 1000 * 60 * 60 * 3, //3 Hours
-      secure: true,
+      secure: false,
       httpOnly: false,
       sameSite: "none",
     },
