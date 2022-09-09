@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 
 const session = require("express-session");
+const MemoryStore = require("memorystore")(session);
 const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
 // const findOrCreate = require("mongoose-findorcreate");
@@ -31,6 +32,9 @@ app.use(
     secret: process.env.SECRET,
     saveUninitialized: false,
     resave: true,
+    store: new MemoryStore({
+      checkPeriod: 86400000, // prune expired entries every 24h
+    }),
     cookie: {
       maxAge: 1000 * 60 * 60 * 3, //3 Hours
       secure: false,
@@ -90,7 +94,7 @@ const userSchema = new mongoose.Schema({
 });
 
 userSchema.plugin(passportLocalMongoose);
-userSchema.plugin(findOrCreate);
+// userSchema.plugin(findOrCreate);
 
 const User = new mongoose.model("User", userSchema);
 
