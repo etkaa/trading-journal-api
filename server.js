@@ -39,6 +39,7 @@ app.use(
     }),
     cookie: {
       path: "/", //added this  09.09 - 15.09
+      domain: "fx-journal.netlify.app",
       maxAge: 1000 * 60 * 60 * 3, //3 Hours
       secure: true, //if true, local won't work //changed this to true 09.09 - 15.09
       httpOnly: true, //no effect on local //changed this to true 09.09 - 15.09
