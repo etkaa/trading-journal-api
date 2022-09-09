@@ -11,15 +11,10 @@ const passportLocalMongoose = require("passport-local-mongoose");
 // const findOrCreate = require("mongoose-findorcreate");
 
 const cors = require("cors");
-
 const app = express();
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL,
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    credentials: true,
-  })
-);
+
+//https://stackoverflow.com/questions/66503751/cross-domain-session-cookie-express-api-on-heroku-react-app-on-netlify/66553425#66553425?newreg=fcbd128fac8c4569a41212157ee2c173
+app.set("trust proxy", 1);
 
 app.use(
   bodyParser.urlencoded({
@@ -32,24 +27,30 @@ app.use(
   session({
     secret: process.env.SECRET,
     saveUninitialized: false,
-    resave: false,
+    resave: true,
     store: new MemoryStore({
       //no effect on local
       checkPeriod: 86400000, // prune expired entries every 24h
     }),
     cookie: {
       path: "/", //added this  09.09 - 15.09
-      domain: "fx-journal.netlify.app",
+      // domain: "fx-journal.netlify.app", //https://stackoverflow.com/questions/71025703/not-able-to-set-receive-cookies-cross-domain-using-netlify-and-heroku
       maxAge: 1000 * 60 * 60 * 3, //3 Hours
-      secure: true, //if true, local won't work //changed this to true 09.09 - 15.09
-      httpOnly: false, //no effect on local //changed this to true 09.09 - 15.09
-      sameSite: "none", //if set, local won't work //changed this to sameSite: none 09.09 - 15.09
+      secure: process.env.NODE_ENV === "production", //if true, local won't work //changed this to true 09.09 - 15.09
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", //if set, local won't work //changed this to sameSite: none 09.09 - 15.09
     },
   })
 );
 
 app.use(passport.initialize());
 app.use(passport.session());
+
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL,
+    credentials: true,
+  })
+);
 
 mongoose.connect(process.env.DB_URL, { useNewUrlParser: true }, () => {
   console.log("Connected to DB");
