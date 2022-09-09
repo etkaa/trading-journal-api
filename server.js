@@ -9,7 +9,6 @@ const passportLocalMongoose = require("passport-local-mongoose");
 const findOrCreate = require("mongoose-findorcreate");
 
 const cors = require("cors");
-const port = process.env.PORT || 8000;
 
 const app = express();
 app.use(
@@ -367,6 +366,6 @@ app.post("/user/update/trades", checkAuthentication, (req, res) => {
   });
 });
 
-app.listen(port, () => {
-  console.log(`Server started on port ${port}`);
+app.listen(process.env.PORT || 8000, () => {
+  console.log(`Server started running.`);
 });
