@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 
 const session = require("express-session");
+const cookieParser = require("cookie-parser");
 const MemoryStore = require("memorystore")(session);
 const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
@@ -26,20 +27,21 @@ app.use(
   })
 );
 app.use(bodyParser.json());
-
+app.use(cookieParser()); //no effect on local
 app.use(
   session({
     secret: process.env.SECRET,
     saveUninitialized: false,
-    resave: true,
+    resave: false,
     store: new MemoryStore({
+      //no effect on local
       checkPeriod: 86400000, // prune expired entries every 24h
     }),
     cookie: {
       maxAge: 1000 * 60 * 60 * 3, //3 Hours
-      secure: false,
-      httpOnly: false,
-      sameSite: "none",
+      secure: false, //if true, local won't work
+      httpOnly: false, //no effect on local
+      // sameSite: "none", //if set, local won't work
     },
   })
 );
@@ -112,6 +114,7 @@ passport.deserializeUser((id, done) => {
 });
 
 function checkAuthentication(req, res, next) {
+  // console.log(req.session); //to see if Session object has user
   if (req.isAuthenticated()) {
     next();
   } else {
