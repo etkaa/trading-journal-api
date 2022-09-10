@@ -8,12 +8,10 @@ const cookieParser = require("cookie-parser");
 const MemoryStore = require("memorystore")(session);
 const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
-// const findOrCreate = require("mongoose-findorcreate");
 
 const cors = require("cors");
 const app = express();
 
-//https://stackoverflow.com/questions/66503751/cross-domain-session-cookie-express-api-on-heroku-react-app-on-netlify/66553425#66553425?newreg=fcbd128fac8c4569a41212157ee2c173
 app.set("trust proxy", 1);
 
 app.use(
@@ -22,22 +20,21 @@ app.use(
   })
 );
 app.use(bodyParser.json());
-app.use(cookieParser()); //no effect on local
+app.use(cookieParser());
 app.use(
   session({
     secret: process.env.SECRET,
     saveUninitialized: false,
-    resave: true,
+    resave: true, //this was the original, trying if this causes cookie to change on signup
+    // resave: false,
     store: new MemoryStore({
-      //no effect on local
-      checkPeriod: 86400000, // prune expired entries every 24h
+      checkPeriod: 18000000, // prune expired entries every 5h
     }),
     cookie: {
-      path: "/", //added this  09.09 - 15.09
-      // domain: "fx-journal.netlify.app", //https://stackoverflow.com/questions/71025703/not-able-to-set-receive-cookies-cross-domain-using-netlify-and-heroku
+      path: "/",
       maxAge: 1000 * 60 * 60 * 3, //3 Hours
-      secure: process.env.NODE_ENV === "production", //if true, local won't work //changed this to true 09.09 - 15.09
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", //if set, local won't work //changed this to sameSite: none 09.09 - 15.09
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     },
   })
 );
@@ -106,18 +103,15 @@ const User = new mongoose.model("User", userSchema);
 passport.use(User.createStrategy());
 
 passport.serializeUser((user, done) => {
-  console.log("serialize running");
   done(null, user.id);
 });
 passport.deserializeUser((id, done) => {
-  console.log("deserialize running");
   User.findById(id, (err, user) => {
     done(err, user);
   });
 });
 
 function checkAuthentication(req, res, next) {
-  // console.log(req.session); //to see if Session object has user
   if (req.isAuthenticated()) {
     next();
   } else {
@@ -162,9 +156,9 @@ app.get("/auth/status", checkAuthentication, (req, res) => {
 app.get("/auth/logout", (req, res) => {
   req.logout((err) => {
     if (!err) {
-      res.send({ success: true });
+      res.status(200).send({ success: true });
     } else {
-      console.log(err);
+      res.status(500).send({ error: err });
     }
   });
 });
@@ -206,7 +200,7 @@ app.get("/user/stats/:userID", checkAuthentication, (req, res) => {
         },
       });
     } else {
-      res.status(500).send({ err });
+      res.status(500).send({ error: err });
     }
   });
 });
@@ -265,8 +259,12 @@ app.post("/auth/signup", (req, res) => {
     req.body.password,
     (err, user) => {
       if (!err) {
-        passport.authenticate("local")(req, res, () => {
-          res.status(200).send({ user: user, success: true });
+        passport.authenticate("local", {
+          failureMessage: true,
+        })(req, res, () => {
+          res.status(200).send({
+            userID: user._id,
+          });
         });
       } else {
         const errorMessage = err.message;
@@ -290,17 +288,14 @@ app.post("/auth/signin", (req, res) => {
         failureMessage: true,
         refreshToken: true,
       })(req, res, () => {
-        res.send({
-          success: true,
+        res.status(200).send({
           userID: req.user._id,
         });
       });
     } else {
-      const message = err.message;
-      console.log(message);
-      res.send({
-        statusCode: 500,
-        message: message,
+      const errorMessage = err.message;
+      res.status(500).send({
+        message: errorMessage,
       });
     }
   });
@@ -328,7 +323,7 @@ app.post("/user/update/profile", checkAuthentication, (req, res) => {
       if (!err) {
         res.status(200).send();
       } else {
-        console.log(err);
+        res.status(500).send({ error: err });
       }
     }
   );
@@ -367,11 +362,9 @@ app.post("/user/update/trades", checkAuthentication, (req, res) => {
       { $push: { userTrades: _id } },
       function (err, docs) {
         if (!err) {
-          res.status(200).send({
-            // updatedUser: docs,
-          });
+          res.status(200).send();
         } else {
-          console.log("error on update/trades api", err);
+          res.status(500).send({ error: err });
         }
       }
     );
