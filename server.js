@@ -144,6 +144,7 @@ app.get("/", (req, res) => {
   res.status(200).send({
     message:
       "Hello, friend! I am not sure how you ended up here but, this is a private API for my portfolio project, so thanks for visiting!",
+    link: "https://github.com/manfromny/trading-journal",
   });
 });
 
@@ -368,6 +369,70 @@ app.post("/user/update/trades", checkAuthentication, (req, res) => {
         }
       }
     );
+  });
+});
+
+app.get("/user/trades/details/:tradeId", checkAuthentication, (req, res) => {
+  const tradeId = req.params.tradeId;
+  //find all trades with the userID===userId
+  Trade.findById(tradeId, (err, foundTrade) => {
+    if (!err) {
+      res.status(200).send({
+        requestedTrade: foundTrade,
+      });
+    } else {
+      res.status(500).send({
+        error: err,
+      });
+    }
+  });
+});
+
+app.patch("/user/patch/trades/:tradeId", checkAuthentication, (req, res) => {
+  const { updatedTrade } = req.body;
+  const tradeId = req.params.tradeId;
+  //create new trade
+  var updatedOutcome;
+  if (updatedTrade.pAndL > 0) {
+    updatedOutcome = "Win";
+  } else if (updatedTrade.pAndL < 0) {
+    updatedOutcome = "Lose";
+  } else {
+    updatedOutcome = "Break-Even";
+  }
+
+  Trade.findByIdAndUpdate(
+    tradeId,
+    {
+      pair: updatedTrade.pair,
+      date: updatedTrade.date,
+      time: updatedTrade.time,
+      open: updatedTrade.open,
+      close: updatedTrade.close,
+      volume: updatedTrade.volume,
+      outcome: updatedOutcome,
+      riskReward: updatedTrade.riskReward,
+      pAndL: updatedTrade.pAndL,
+    },
+    function (err, updatedTrade) {
+      if (!err) {
+        res.status(200).send({ message: "Successfully updated!" });
+      } else {
+        res.status(500).send({ error: err });
+      }
+    }
+  );
+});
+
+app.delete("/user/trade/delete/:tradeId", checkAuthentication, (req, res) => {
+  const tradeId = req.params.tradeId;
+
+  Trade.findByIdAndDelete(tradeId, function (err, docs) {
+    if (!err) {
+      res.status(200).send({ message: "Successfully deleted!" });
+    } else {
+      res.status(500).send({ error: err });
+    }
   });
 });
 
